@@ -32,18 +32,6 @@ If the transcript did not cover a category (e.g., exam ended early), score it
 student for questions the examiner never asked. This will be handled
 separately.
 
-### Project Context (for calibrating expectations)
-The project used these parameters:
-- One-group: Σa = 0.018 cm⁻¹, νΣf = 0.021 cm⁻¹, D = 1.30 cm
-- k∞ = 1.167, L = 8.50 cm, Bm² ≈ 0.00231 cm⁻²
-- Critical radius ≈ 135 cm (physical), He ≈ 362 cm
-- Two-group k_eff ≈ 1.12, fast-to-thermal flux ratio ≈ 0.07
-- Peak volumetric power density ≈ 12.5 MW/m³
-- Peak fuel temperature ≈ 767 K (well below UO₂ melt at 2800 K)
-- Coolant outlet ≈ 600 K (margin to boiling at ~620 K)
-- Cycle length ≈ 8 years (simplified model), fuel cost/cycle ≈ $35M
-- SWU cost dominates fuel economics
-
 An exemplary student answer will reference specific numbers, derive
 relationships rather than state them, and acknowledge simplifications.
 """
