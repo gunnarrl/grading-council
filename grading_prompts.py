@@ -34,6 +34,13 @@ separately.
 
 An exemplary student answer will reference specific numbers, derive
 relationships rather than state them, and acknowledge simplifications.
+
+### Student's Project Summary
+The following is a structured summary of this student's submitted report.
+Use it to verify that their oral answers are consistent with their own work,
+to probe specific design choices, and to grade answers they gave.
+
+{project_summary}
 """
 
 # ---------------------------------------------------------------------------

@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 
 from grading_prompts import RUBRIC, ROUND1_SYSTEM, ROUND1_USER, ROUND2_SYSTEM, ROUND2_USER, CHAIR_SYSTEM, CHAIR_USER
 
+STUDENTS_JSON = Path(__file__).parent / "students.json"
+
 # Model names — update if API identifiers change
 CLAUDE_MODEL = "claude-sonnet-4-6"
 GPT_MODEL    = "gpt-5.2-2025-12-11"
@@ -23,13 +25,22 @@ WEIGHTS = {
     "engineering_judgment":      0.15,
 }
 
+def load_project_summary(student_id: str) -> str:
+    """Return the project_details string for a student from students.json."""
+    if not STUDENTS_JSON.exists():
+        return "Project summary not available (students.json not found — run summarize_projects.py)."
+    records = json.loads(STUDENTS_JSON.read_text(encoding="utf-8"))
+    for r in records:
+        if r.get("student_id") == student_id:
+            return r.get("project_details", "Project summary not available.")
+    return f"Project summary not found for student ID {student_id}."
+
 
 def load_keys():
     load_dotenv(Path(__file__).parent / ".env")
     for key in ("ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY"):
         if not os.getenv(key) or os.getenv(key).startswith("your_"):
             sys.exit(f"[ERROR] Missing API key: {key} — fill in .env")
-
 
 def parse_json(text: str) -> dict:
     """Strip markdown fences and parse JSON."""
@@ -87,8 +98,8 @@ CALLERS = {"claude": call_claude, "gpt": call_gpt, "gemini": call_gemini}
 
 # --- Grading rounds ---
 
-def round1(transcript: str) -> dict:
-    user_prompt = ROUND1_USER.format(rubric=RUBRIC, transcript=transcript)
+def round1(transcript: str, rubric: str) -> dict:
+    user_prompt = ROUND1_USER.format(rubric=rubric, transcript=transcript)
 
     def grade(key):
         result = parse_json(CALLERS[key](ROUND1_SYSTEM, user_prompt)) # call model, parse response
@@ -103,11 +114,11 @@ def round1(transcript: str) -> dict:
     return results
 
 
-def round2(transcript: str, r1: dict) -> dict:
+def round2(transcript: str, r1: dict, rubric: str) -> dict:
     def deliberate(key):
         peers = [p for p in CALLERS if p != key]
         user_prompt = ROUND2_USER.format(
-            rubric=RUBRIC, transcript=transcript,
+            rubric=rubric, transcript=transcript,
             my_round1=json.dumps(r1.get(key, {}), indent=2),
             peer_a_round1=json.dumps(r1.get(peers[0], {}), indent=2),
             peer_b_round1=json.dumps(r1.get(peers[1], {}), indent=2),
@@ -124,9 +135,9 @@ def round2(transcript: str, r1: dict) -> dict:
     return results
 
 
-def chair_synthesis(transcript: str, r1: dict, r2: dict) -> dict:
+def chair_synthesis(transcript: str, r1: dict, r2: dict, rubric: str) -> dict:
     user_prompt = CHAIR_USER.format(
-        rubric=RUBRIC, transcript=transcript,
+        rubric=rubric, transcript=transcript,
         claude_r1=json.dumps(r1.get("claude", {}), indent=2),
         claude_r2=json.dumps(r2.get("claude", {}), indent=2),
         gpt_r1=json.dumps(r1.get("gpt", {}), indent=2),
@@ -154,9 +165,12 @@ def main():
     transcript = transcript_path.read_text(encoding="utf-8").strip()
     load_keys()
 
-    r1 = round1(transcript)
-    r2 = round2(transcript, r1)
-    final = chair_synthesis(transcript, r1, r2)
+    project_summary = load_project_summary(student_id)
+    rubric = RUBRIC.format(project_summary=project_summary)
+
+    r1 = round1(transcript, rubric)
+    r2 = round2(transcript, r1, rubric)
+    final = chair_synthesis(transcript, r1, r2, rubric)
 
     report = {
         "metadata": {
