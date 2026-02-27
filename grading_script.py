@@ -5,7 +5,7 @@ from pathlib import Path
 
 import anthropic
 import openai
-import google.generativeai as genai
+from google import genai
 from dotenv import load_dotenv
 
 from grading_prompts import RUBRIC, ROUND1_SYSTEM, ROUND1_USER, ROUND2_SYSTEM, ROUND2_USER, CHAIR_SYSTEM, CHAIR_USER
@@ -66,18 +66,20 @@ def call_claude(system: str, user: str) -> str:
 def call_gpt(system: str, user: str) -> str:
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     r = client.chat.completions.create(
-        model=GPT_MODEL, max_tokens=4096,
+        model=GPT_MODEL, max_completion_tokens=4096,
         messages=[{"role": "system", "content": system}, {"role": "user", "content": user}]
     )
     return r.choices[0].message.content
 
 
 def call_gemini(system: str, user: str) -> str:
-    genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-    model = genai.GenerativeModel(model_name=GEMINI_MODEL, system_instruction=system)
-    return model.generate_content(
-        user, generation_config=genai.types.GenerationConfig(max_output_tokens=4096)
-    ).text
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    r = client.models.generate_content(
+        model=GEMINI_MODEL,
+        config={'system_instruction': system},
+        contents=user
+    )
+    return r.text
 
 
 CALLERS = {"claude": call_claude, "gpt": call_gpt, "gemini": call_gemini}
@@ -89,16 +91,15 @@ def round1(transcript: str) -> dict:
     user_prompt = ROUND1_USER.format(rubric=RUBRIC, transcript=transcript)
 
     def grade(key):
-        result = parse_json(CALLERS[key](ROUND1_SYSTEM, user_prompt))
-        result["model"], result["round"] = key, 1
+        result = parse_json(CALLERS[key](ROUND1_SYSTEM, user_prompt)) # call model, parse response
+        result["model"] = key
+        result["round"] = 1
         result["weighted_total"] = weighted_total(result.get("scores", {}))
-        return key, result
+        return result
 
     results = {}
-    with ThreadPoolExecutor(max_workers=3) as ex:
-        for future in as_completed({ex.submit(grade, k): k for k in CALLERS}):
-            k, r = future.result()
-            results[k] = r
+    for k in CALLERS:
+        results[k] = grade(k)
     return results
 
 
@@ -111,16 +112,15 @@ def round2(transcript: str, r1: dict) -> dict:
             peer_a_round1=json.dumps(r1.get(peers[0], {}), indent=2),
             peer_b_round1=json.dumps(r1.get(peers[1], {}), indent=2),
         )
-        result = parse_json(CALLERS[key](ROUND2_SYSTEM, user_prompt))
-        result["model"], result["round"] = key, 2
+        result = parse_json(CALLERS[key](ROUND2_SYSTEM, user_prompt)) # call model, parse response
+        result["model"] = key
+        result["round"] = 2
         result["weighted_total"] = weighted_total(result.get("scores", {}))
-        return key, result
+        return result
 
     results = {}
-    with ThreadPoolExecutor(max_workers=3) as ex:
-        for future in as_completed({ex.submit(deliberate, k): k for k in CALLERS}):
-            k, r = future.result()
-            results[k] = r
+    for k in CALLERS:
+        results[k] = deliberate(k)
     return results
 
 
