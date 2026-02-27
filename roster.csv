@@ -1,0 +1,7 @@
+student_id,student_name,group_id,pdf_filename
+123456789,Todd Palmer,A,group_A_report.pdf
+934518146,Gunnar Larsen,A,group_A_report.pdf
+111222333,Carol White,B,group_B_report.pdf
+444555666,David Kim,B,group_B_report.pdf
+777888999,Eve Nakamura,C,group_C_report.pdf
+000111222,Frank Osei,C,group_C_report.pdf

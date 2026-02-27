@@ -99,28 +99,25 @@ def main():
     with ROSTER_CSV.open(encoding="utf-8") as f:
         for row in csv.DictReader(f):
             gid = row["group_id"].strip()
-            groups.setdefault(gid, []).append({k: row[k].strip() for k in ("student_id", "student_name", "pdf_filename")})
+            student = {k: row[k].strip() for k in ("student_id", "student_name", "pdf_filename")}
+            groups.setdefault(gid, []).append(student)
 
     # Summarise each unique PDF once
     pdf_summaries: dict[str, dict] = {}
     seen: set[str] = set()
+
     for students in groups.values():
         fname = students[0]["pdf_filename"]
+        
         if fname in seen:
             continue
+            
         seen.add(fname)
         pdf_path = PDF_DIR / fname
-        if not pdf_path.exists():
-            print(f"[WARNING] PDF not found: {fname}")
-            pdf_summaries[fname] = {}
-            continue
-        try:
-            uploaded = upload_pdf(client, pdf_path)
-            pdf_summaries[fname] = summarise_pdf(client, uploaded)
-            print(f"Summarised project {fname}")
-        except Exception as exc:
-            print(f"[ERROR] {fname}: {exc}")
-            pdf_summaries[fname] = {}
+        
+        uploaded = upload_pdf(client, pdf_path)
+        pdf_summaries[fname] = summarise_pdf(client, uploaded)
+        print(f"Summarised project {fname}")
 
     # Build one entry per student
     output = []
