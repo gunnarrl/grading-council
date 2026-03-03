@@ -40,7 +40,7 @@ def format_transcript(turns):
     lines = []
     for t in turns:
         role = "Agent" if t.get("role") == "agent" else "Student"
-        msg = t.get("message", "").strip()
+        msg = (t.get("message") or "").strip()
         if msg:
             lines.append(f"{role}: {msg}")
     return "\n\n".join(lines)
