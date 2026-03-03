@@ -3,3 +3,29 @@ First do their own evaluation, then see other models' evaluations and adjust the
 Repeat until convergence.
 
 For Dr. Palmer NSE 351.
+
+Step 1: Create venv and install requirements
+    python3 -m venv venv
+    source venv/bin/activate
+    pip install -r requirements.txt
+    
+Step 2: Create .env file
+    cp .env.example .env
+    fill in the keys
+
+Step 3: Set class materials
+    Upload all projects as PDFs to the main directory
+    Update roster.csv with the following format:
+    student_id,student_name,group_id,pdf_filename
+
+Step 4: Summarise projects
+    python summarize_projects.py
+    
+Step 5: Generate exam links
+    python generate_exam_links.py
+    
+Step 6: Fetch transcripts
+    python fetch_transcripts.py
+
+Step 7: Grade each transcript
+    python grading_script.py transcripts/[student_id]_transcript.txt [student_id]

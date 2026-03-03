@@ -1,2 +1,8 @@
 .env
 *.ipynb
+*.pdf
+exam_links.csv
+students.json
+transcripts/
+*_report.json
+__pycache__/
