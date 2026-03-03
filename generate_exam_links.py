@@ -1,3 +1,4 @@
+import base64
 import csv
 import json
 import os
@@ -15,30 +16,31 @@ AGENT_ID           = os.getenv("ELEVENLABS_AGENT_ID")
 TOKEN_TTL_SECONDS  = 604800  # 7 days
 OUTPUT_CSV         = Path(__file__).parent / "exam_links.csv"
 STUDENTS_JSON      = Path(__file__).parent / "students.json"
-TOKEN_URL          = "https://api.elevenlabs.io/v1/convai/conversation/token"
+TOKEN_URL          = "https://api.elevenlabs.io/v1/convai/conversation/get_signed_url"
 
 
 def get_signed_url(student: dict) -> str:
-    resp = requests.post(
+    resp = requests.get(
         TOKEN_URL,
-        headers={"xi-api-key": ELEVENLABS_API_KEY, "Content-Type": "application/json"},
-        json={
-            "agent_id": AGENT_ID,
-            "ttl": TOKEN_TTL_SECONDS,
-            "conversation_config_override": {
-                "agent": {"prompt": {"variables": {
-                    "student_id":      student["student_id"],
-                    "student_name":    student["student_name"],
-                    "project_details": student["project_details"],
-                }}}
-            },
-        },
+        headers={"xi-api-key": ELEVENLABS_API_KEY},
+        params={"agent_id": AGENT_ID},
         timeout=15,
     )
     if not resp.ok:
         raise RuntimeError(f"{resp.status_code} — {resp.text}")
-    token = resp.json()["signed_url"].split("token=")[-1]
-    return f"https://elevenlabs.io/app/talk-to?agent_id={AGENT_ID}&token={token}"
+        
+    ws_url = resp.json()["signed_url"]
+    token = ws_url.split("conversation_signature=")[-1]
+    
+    # encode variables to pass through url
+    variables = {
+        "student_id":      student["student_id"],
+        "student_name":    student["student_name"],
+        "project_details": student["project_details"],
+    }
+    vars_b64 = base64.b64encode(json.dumps(variables).encode("utf-8")).decode("utf-8")
+    
+    return f"https://elevenlabs.io/app/talk-to?agent_id={AGENT_ID}&token={token}&vars={vars_b64}"
 
 
 def main():
