@@ -1,6 +1,5 @@
 .env
 *.ipynb
-*.pdf
 exam_links.csv
 students.json
 transcripts/
