@@ -5,3 +5,4 @@ students.json
 transcripts/
 *_report.json
 __pycache__/
+venv
